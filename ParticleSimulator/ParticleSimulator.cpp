@@ -16,34 +16,18 @@ typedef enum CellType {
     sand
 }CellType;
 
-class MainClass {
+class ParticleHandler {
 private:
     CellType grid[GRIDW][GRIDH];
-    CellType selectedBrush;
-    int brushSize;
 public:
-    MainClass() {
-        InitWindow(SCREENW, SCREENH, "ParticleSim");
-        SetTargetFPS(80);
+    ParticleHandler() {
         for (int i = 0; i < GRIDW; i++) {
             for (int j = 0; j < GRIDH; j++) {
                 grid[i][j] = air;
             }
         }
-        brushSize = 1;        
-        _mainFunc();
     }
-    void _mainFunc() {
-        while (!WindowShouldClose())
-        {
-            _drawingFunction();
-            _mouseInteraction();
-            _simulate();
-        }
-    }
-    void _drawingFunction() {
-        BeginDrawing();
-        ClearBackground(BLACK);
+    void _DrawParticles() {
         for (int i = 0; i < GRIDW; i++) {
             for (int j = 0; j < GRIDH; j++) {
                 switch (grid[i][j]) {
@@ -62,6 +46,125 @@ public:
                 }
             }
         }
+    }
+    void _PutParticles(int x, int y, int brushSize, CellType selectedBrush) {
+        int xn = x / CELLSIDE;
+        int yn = y / CELLSIDE;
+        for (int i = 0; i < brushSize; i++) {
+            for (int j = 0; j < brushSize; j++) {
+                if (xn - brushSize / 2 + i >= 0 && xn - brushSize / 2 + i < GRIDW && yn - brushSize / 2 + j >= 0 && yn - brushSize / 2 + j < GRIDH) {
+                    grid[xn - brushSize / 2 + i][yn - brushSize / 2 + j] = selectedBrush;
+                }
+            }
+        }
+    }
+    void _simulate() {
+        int max, min, checked = 0;
+        for (int i = GRIDW - 1; i >= 0; i--) {
+            for (int j = GRIDH - 1; j >= 0; j--) {
+                switch (grid[i][j]) {
+                case air:
+                    break;
+                case gravel:
+                    if (j + 1 < GRIDH && grid[i][j + 1] != gravel && grid[i][j + 1] != sand) {
+                        grid[i][j] = grid[i][j + 1];
+                        grid[i][j + 1] = gravel;
+                    }
+                    break;
+                case water:
+                    if (j + 1 < GRIDH) {
+                        if (grid[i][j + 1] == air) {
+                            grid[i][j] = grid[i][j + 1];
+                            grid[i][j + 1] = water;
+                        }
+                        else {
+                            max = GRIDW;
+                            min = -1;
+                            for (int x = i + 1; x < GRIDW; x++) {
+                                if (grid[x][j] != air) {
+                                    max = x;
+                                    break;
+                                }
+                            }
+                            for (int x = i - 1; x >= 0; x--) {
+                                if (grid[x][j] != air) {
+                                    min = x;
+                                    break;
+                                }
+                            }
+                            if (!checked) {
+                                for (int x = i; x < max; x++) {
+                                    if (grid[x][j] == air) {
+                                        grid[i][j] = air;
+                                        grid[x][j] = water;
+                                        checked = 1;
+                                        break;
+                                    }
+                                }
+                            }
+                            else {
+                                checked = 0;
+                            }
+                            if (!checked) {
+                                for (int x = i; x > min; x--) {
+                                    if (grid[x][j] == air) {
+                                        grid[i][j] = air;
+                                        grid[x][j] = water;
+                                        break;
+                                    }
+                                }
+                            }
+                            else {
+                                checked = 0;
+                            }
+                        }
+                    }
+                    break;
+                case sand:
+                    if (j + 1 < GRIDH && grid[i][j + 1] != sand && grid[i][j + 1] != gravel) {
+                        grid[i][j] = grid[i][j + 1];
+                        grid[i][j + 1] = sand;
+                    }
+                    else if (i + 1 < GRIDW && j + 1 < GRIDH && (grid[i + 1][j + 1] == air || grid[i + 1][j + 1] == water)) {
+                        grid[i][j] = grid[i + 1][j + 1];
+                        grid[i + 1][j + 1] = sand;
+                    }
+                    else if (i - 1 >= 0 && j + 1 < GRIDH && (grid[i - 1][j + 1] == air || grid[i - 1][j + 1] == water)) {
+                        grid[i][j] = grid[i - 1][j + 1];
+                        grid[i - 1][j + 1] = sand;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+};
+
+class MainClass {
+private:
+    ParticleHandler handler;
+    CellType selectedBrush;
+    int brushSize;
+public:
+    MainClass() {
+        InitWindow(SCREENW, SCREENH, "ParticleSim");
+        SetTargetFPS(80);
+        handler = ParticleHandler();
+        brushSize = 1;        
+        _mainFunc();
+    }
+    void _mainFunc() {
+        while (!WindowShouldClose())
+        {
+            _drawingFunction();
+            _mouseInteraction();
+            handler._simulate();
+        }
+    }
+    void _drawingFunction() {
+        BeginDrawing();
+        ClearBackground(BLACK);
+        handler._DrawParticles();
         DrawRectangle(10, 713, TYPESIDE, TYPESIDE, SKYBLUE);
         DrawRectangle(70, 713, TYPESIDE, TYPESIDE, GRAY);
         DrawRectangle(130, 713, TYPESIDE, TYPESIDE, DARKBLUE);
@@ -97,94 +200,7 @@ public:
                 }
             }
             else {
-                x /= CELLSIDE;
-                y /= CELLSIDE;
-                for (int i = 0; i < brushSize; i++) {
-                    for (int j = 0; j < brushSize; j++) {
-                        if (x - brushSize / 2 + i >= 0 && x - brushSize / 2 + i < GRIDW && y - brushSize / 2 + j >= 0 && y - brushSize / 2 + j < GRIDH) {
-                            grid[x - brushSize / 2 + i][y - brushSize / 2 + j] = selectedBrush; 
-                        }
-                    }
-                }
-            }
-        }
-    }
-    void _simulate() {
-        int max, min, checked = 0;
-        for (int i = 0; i < GRIDW; i++) {
-            for (int j = GRIDH - 1; j >= 0; j--) {
-                switch (grid[i][j]) {
-                case air:
-                    break;
-                case gravel:
-                    if (j + 1 < GRIDH && grid[i][j + 1] != gravel && grid[i][j + 1] != sand) {
-                        grid[i][j] = grid[i][j + 1];
-                        grid[i][j + 1] = gravel;
-                    }
-                    break;
-                case water:
-                    if (j + 1 < GRIDH) {
-                        if (grid[i][j + 1] == air) {
-                            grid[i][j] = grid[i][j + 1];
-                            grid[i][j + 1] = water;
-                        }
-                        else {
-                            max = GRIDW;
-                            min = -1;
-                            for (int x = i + 1; x < GRIDW; x++) {
-                                if (grid[x][j] != air) {
-                                    max = x + 1;
-                                    break;
-                                }
-                            }
-                            for (int x = i - 1; x >= 0; x--) {
-                                if (grid[x][j] != air) {
-                                    min = x - 1;
-                                    break;
-                                }
-                            }
-                            if (!checked) {
-                                for (int x = i; x < max ; x++) {
-                                    if (grid[x][j] == air) {
-                                        grid[i][j] = air;
-                                        grid[x][j] = water;
-                                        checked = 1;
-                                        break;
-                                    }
-                                }
-                            }
-                            else {
-                                checked = 0;
-                            }
-                            if (!checked) {
-                                for (int x = i; x > min; x--) {
-                                    if (grid[x][j] == air) {
-                                        grid[i][j] = air;
-                                        grid[x][j] = water;
-                                        break;
-                                    }
-                                }
-                            }
-                            else {
-                                checked = 0;
-                            }
-                        }
-                    }                   
-                    break;
-                case sand:
-                    if (j + 1 < GRIDH && grid[i][j + 1] != sand && grid[i][j + 1] != gravel) {
-                        grid[i][j] = grid[i][j + 1];
-                        grid[i][j + 1] = sand;
-                    }
-                    else if (i + 1 < GRIDW && j + 1 < GRIDH && (grid[i + 1][j + 1] == air || grid[i + 1][j + 1] == water)) {
-                        grid[i][j] = grid[i + 1][j + 1];
-                        grid[i + 1][j + 1] = sand;
-                    } else if (i - 1 >= 0 && j + 1 < GRIDH && (grid[i - 1][j + 1] == air || grid[i - 1][j + 1] == water)) {
-                        grid[i][j] = grid[i - 1][j + 1];
-                        grid[i - 1][j + 1] = sand;
-                    }
-                    break;
-                }
+                handler._PutParticles(x, y, brushSize, selectedBrush);
             }
         }
     }
