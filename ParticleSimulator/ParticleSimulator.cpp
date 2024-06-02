@@ -68,8 +68,10 @@ public:
         }
     }
     void _simulate() {
-        int checked;
-        bool** moved = new bool*[GRIDW];
+        _simulateGravity();
+    }
+    void _simulateGravity() {
+        bool** moved = new bool* [GRIDW];
         for (int i = 0; i < GRIDW; i++) {
             moved[i] = new bool[GRIDH];
         }
@@ -78,8 +80,7 @@ public:
                 moved[i][j] = false;
             }
         }
-        int left = 0, right = 0;
-        for (int i = GRIDW - 1; i >= 0; i--) {
+        for (int i = 0; i < GRIDW; i++) {
             for (int j = GRIDH - 1; j >= 0; j--) {
                 if (moved[i][j] == true) {
                     continue;
@@ -88,144 +89,50 @@ public:
                 case air:
                     break;
                 case gravel:
-                    checked = 0;
-                    if (j + 1 < GRIDH && grid[i][j + 1] != gravel && grid[i][j + 1] != sand) {
-                        if (grid[i][j + 1] == water) {
-                            for (int x = 0; i + x < GRIDW; x++) {
-                                if (grid[i + x][j] == air) {
-                                    grid[i + x][j] = water;
-                                    checked = 1;
-                                    break;
-                                }
-                            }
-                            if (!checked) {
-                                for (int x = 0; i + x >= 0; x--) {
-                                    if (grid[i + x][j] == air) {
-                                        grid[i + x][j] = water;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (!checked) {
-                                grid[i][j] = water;
-                                grid[i][j + 1] = gravel;
-                                break;
-                            }
-                        }
-                        grid[i][j] = air;
+                    if (j + 1 < GRIDH && (grid[i][j + 1] == air || grid[i][j + 1] == water)) {
+                        grid[i][j] = grid[i][j + 1];
                         grid[i][j + 1] = gravel;
                     }
                     break;
                 case water:
-                    if (j + 1 < GRIDH) {
-                        if (grid[i][j + 1] == air) {
-                            grid[i][j] = air;
-                            grid[i][j + 1] = water;
-                            break;
-                        }
-                        else {
-                            for (int x = 1; left != 1 || right != 1; x++) {
-                                if (i - x < 0 || (grid[i - x][j] != air && grid[i - x][j] != water)) {
-                                    left = 1;
-                                }
-                                if (i + x > GRIDW - 1 || (grid[i + x][j] != air && grid[i + x][j] != water)) {
-                                    right = 1;
-                                }
-                                if (left != 1 && grid[i - x][j] == air) {
-                                    grid[i][j] = air;
-                                    grid[i - x][j] = water;
-                                    break;
-                                }
-                                else if (right != 1 && grid[i + x][j] == air) {
-                                    grid[i][j] = air;
-                                    grid[i + x][j] = water;
-                                    break;
-                                }
-                            }
-                        }
+                    if (j + 1 < GRIDH && grid[i][j + 1] == air) {
+                        grid[i][j] = air;
+                        grid[i][j + 1] = water;
                     }
-                    left = 0;
-                    right = 0;
                     break;
                 case sand:
-                    checked = 0;
-                    if (j + 1 < GRIDH && grid[i][j + 1] != gravel && grid[i][j + 1] != sand) {
-                        if (grid[i][j + 1] == water) {
-                            for (int x = 0; i + x < GRIDW; x++) {
-                                if (grid[i + x][j] == air) {
-                                    grid[i + x][j] = water;
-                                    moved[i + x][j] = true;
-                                    checked = 1;
-                                    break;
-                                }
-                            }
-                            if (!checked) {
-                                for (int x = 0; i + x >= 0; x--) {
-                                    if (grid[i + x][j] == air) {
-                                        grid[i + x][j] = water;
-                                        moved[i + x][j] = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (!checked) {
-                                grid[i][j] = water;
-                                grid[i][j + 1] = sand;
-                                break;
-                            }
-                        }
-                        grid[i][j] = air;
+                    if (j + 1 < GRIDH && (grid[i][j + 1] == air || grid[i][j + 1] == water)) {
+                        grid[i][j] = grid[i][j + 1];
                         grid[i][j + 1] = sand;
-                        break;
-                    }
-                    else if (i - 1 >= 0 && j + 1 < GRIDH && (grid[i - 1][j + 1] == air || grid[i - 1][j + 1] == water)) {
-                        grid[i][j] = grid[i - 1][j + 1];
-                        grid[i - 1][j + 1] = sand;
-                    }
-                    else if (i + 1 < GRIDW && j + 1 < GRIDH && (grid[i + 1][j + 1] == air || grid[i + 1][j + 1] == water)) {
-                        grid[i][j] = grid[i + 1][j + 1];
-                        grid[i + 1][j + 1] = sand;
                     }
                     break;
                 case smoke:
-                    if (rand() % 480 == 0) {
+                    if (rand() % 60 == 0) {
                         grid[i][j] = air;
-                        break;
-                    }
-                    if (j - 1 >= 0) {
-                        if (grid[i][j - 1] == air || grid[i][j - 1] == water) {
-                            grid[i][j] = grid[i][j - 1];
-                            moved[i][j - 1] = true;
-                            grid[i][j - 1] = smoke;
-                            break;
-                        }
-                        else {
-                            switch (rand() % 3) {
-                            case 0:
+                    } else {
+                        int x;
+                        for (x = j; x > 0; x--) {
+                            if (grid[i][x] == smoke) {
+                                moved[i][x] = true;
+                            }
+                            else if(grid[i][x] == sand || grid[i][x] == gravel){
+                                x++;
                                 break;
-                            case 1:
-                                if (i + 1 < GRIDW && grid[i + 1][j] == air) {
-                                    grid[i][j] = air;
-                                    moved[i + 1][j] = true;
-                                    grid[i + 1][j] = smoke;
-                                }
-                                break;
-                            case 2:
-                                if (i - 1 >= 0 && grid[i - 1][j] == air) {
-                                    grid[i][j] = air;
-                                    moved[i - 1][j] = true;
-                                    grid[i - 1][j] = smoke;
-                                }
+                            }
+                            else {
                                 break;
                             }
                         }
+                        grid[i][j] = grid[i][x];
+                        grid[i][x] = smoke;
+                        moved[i][x] = true;
                     }
                     break;
                 }
             }
         }
         for (int i = 0; i < GRIDW; ++i) {
-            delete[] moved[i]; 
+            delete[] moved[i];
         }
         delete[] moved;
     }
@@ -239,7 +146,7 @@ private:
 public:
     MainClass() {
         InitWindow(SCREENW, SCREENH, "ParticleSim");
-        SetTargetFPS(80);
+        SetTargetFPS(45);
         handler = ParticleHandler();
         brushSize = 1;      
         srand(time(0));
