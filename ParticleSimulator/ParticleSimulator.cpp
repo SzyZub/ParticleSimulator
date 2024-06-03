@@ -7,14 +7,20 @@
 #define TYPESIDE 50
 #define GRIDW SCREENW/CELLSIDE
 #define GRIDH SCREENH/CELLSIDE - 15
-#define SANDCOL {211, 169, 108, 255}
+#define SKYCOL {102, 191, 255, 210}
+#define GRAVCOL {130, 130, 130, 150}
+#define WATERCOL {20, 82, 200, 150}
+#define SANDCOL {211, 169, 108, 215}
+#define SMOKCOL {200, 200, 200, 245}
+#define ACIDCOL {0, 208, 65, 200}
 
 typedef enum CellType {
     air = 0,
     gravel,
     water,
     sand,
-    smoke
+    smoke,
+    acid
 }CellType;
 
 class ParticleHandler {
@@ -33,28 +39,32 @@ public:
             for (int j = 0; j < GRIDH; j++) {
                 switch (grid[i][j]) {
                 case air:
-                    DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, SKYBLUE);
+                    DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, SKYCOL);
                     break;
                 case gravel:
-                    DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, GRAY);
+                    DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, GRAVCOL);
                     break;
                 case water:
-                    DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, DARKBLUE);
+                    DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, WATERCOL);
                     break;
                 case sand:
                     DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, SANDCOL);
                     break;
                 case smoke:
-                    DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, LIGHTGRAY);
+                    DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, SMOKCOL);
+                    break;
+                case acid:
+                    DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, ACIDCOL);
                     break;
                 }
             }
         }
-        DrawRectangle(10, 713, TYPESIDE, TYPESIDE, SKYBLUE);
-        DrawRectangle(70, 713, TYPESIDE, TYPESIDE, GRAY);
-        DrawRectangle(130, 713, TYPESIDE, TYPESIDE, DARKBLUE);
+        DrawRectangle(10, 713, TYPESIDE, TYPESIDE, SKYCOL);
+        DrawRectangle(70, 713, TYPESIDE, TYPESIDE, GRAVCOL);
+        DrawRectangle(130, 713, TYPESIDE, TYPESIDE, WATERCOL);
         DrawRectangle(190, 713, TYPESIDE, TYPESIDE, SANDCOL);
-        DrawRectangle(250, 713, TYPESIDE, TYPESIDE, LIGHTGRAY);
+        DrawRectangle(250, 713, TYPESIDE, TYPESIDE, SMOKCOL);
+        DrawRectangle(310, 713, TYPESIDE, TYPESIDE, ACIDCOL);
     }
     void _PutParticles(int x, int y, int brushSize, CellType selectedBrush) {
         int xn = x / CELLSIDE;
@@ -94,19 +104,28 @@ public:
                 case air:
                     break;
                 case gravel:
-                    if (j + 1 < GRIDH && (grid[i][j + 1] == air || grid[i][j + 1] == water)) {
+                    if (j + 1 < GRIDH && grid[i][j + 1] == acid) {
+                        grid[i][j] = smoke;
+                        grid[i][j + 1] = smoke;
+                    } else if (j + 1 < GRIDH && (grid[i][j + 1] == air || grid[i][j + 1] == water)) {
                         grid[i][j] = grid[i][j + 1];
                         grid[i][j + 1] = gravel;
                     }
                     break;
                 case water:
-                    if (j + 1 < GRIDH && grid[i][j + 1] == air) {
+                    if (j + 1 < GRIDH && grid[i][j + 1] == acid) {
+                        grid[i][j] = smoke;
+                        grid[i][j + 1] = smoke;
+                    } else if (j + 1 < GRIDH && grid[i][j + 1] == air) {
                         grid[i][j] = air;
                         grid[i][j + 1] = water;
                     }
                     break;
                 case sand:
-                    if (j + 1 < GRIDH && (grid[i][j + 1] == air || grid[i][j + 1] == water)) {
+                    if (j + 1 < GRIDH && grid[i][j + 1] == acid) {
+                        grid[i][j] = smoke;
+                        grid[i][j + 1] = smoke;
+                    } else if (j + 1 < GRIDH && (grid[i][j + 1] == air || grid[i][j + 1] == water)) {
                         grid[i][j] = grid[i][j + 1];
                         grid[i][j + 1] = sand;
                     }
@@ -134,6 +153,18 @@ public:
                         grid[i][j] = grid[i][x];
                         grid[i][x] = smoke;
                         moved[i][x] = true;
+                    }
+                    break;
+                case acid:
+                    if (j + 1 < GRIDH && grid[i][j + 1] == acid) {
+                        break;
+                    } else if (j + 1 < GRIDH && grid[i][j + 1] != air && grid[i][j + 1] != smoke) {
+                        grid[i][j] = smoke;
+                        grid[i][j + 1] = smoke;
+                    }
+                    else if (j + 1 < GRIDH) {
+                        grid[i][j] = air;
+                        grid[i][j + 1] = acid;
                     }
                     break;
                 }
@@ -208,6 +239,28 @@ public:
                         }
                     }
                     break;
+                case acid:
+                    if (rand() % 2) {
+                        if (j + 1 < GRIDH && i - 1 >= 0 && grid[i][j+1] == acid && grid[i-1][j] != air && grid[i - 1][j] != acid) {
+                            grid[i - 1][j] = smoke;
+                            grid[i][j] = smoke;
+                        }
+                        else if (i - 1 >= 0 && grid[i - 1][j] == air){
+                            grid[i][j] = grid[i - 1][j];
+                            grid[i - 1][j] = acid;
+                        }
+                    }
+                    else {
+                        if (j + 1 < GRIDH && i + 1 < GRIDW && grid[i][j + 1] == acid && grid[i + 1][j] != air && grid[i + 1][j] != acid) {
+                            grid[i + 1][j] = smoke;
+                            grid[i][j] = smoke;
+                        }
+                        else if (i + 1 < GRIDW && grid[i + 1][j] == air){
+                            grid[i][j] = grid[i + 1][j];
+                            grid[i + 1][j] = acid;
+                        }
+                    }
+                    break;
                 }
             }
         }
@@ -226,7 +279,7 @@ private:
 public:
     MainClass() {
         InitWindow(SCREENW, SCREENH, "ParticleSim");
-        SetTargetFPS(45);
+        SetTargetFPS(60);
         handler = ParticleHandler();
         brushSize = 1;      
         srand(time(0));
@@ -269,6 +322,9 @@ public:
                 }
                 else if (x > 250 && x < 250 + TYPESIDE) {
                     selectedBrush = smoke;
+                }
+                else if (x > 310 && x < 310 + TYPESIDE) {
+                    selectedBrush = acid;
                 }
                 else if (brushSize < 20 && x > 930 && x < 960 && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     brushSize++;
