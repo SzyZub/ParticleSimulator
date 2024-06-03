@@ -68,9 +68,11 @@ public:
         }
     }
     void _simulate() {
-        _simulateGravity();
+        _simulateHorizontal();
+        _simulateVertical();
     }
-    void _simulateGravity() {
+    void _simulateVertical() {
+        int smokeCount = 0, sumSmoke = 0;
         bool** moved = new bool* [GRIDW];
         for (int i = 0; i < GRIDW; i++) {
             moved[i] = new bool[GRIDH];
@@ -80,8 +82,11 @@ public:
                 moved[i][j] = false;
             }
         }
-        for (int i = 0; i < GRIDW; i++) {
-            for (int j = GRIDH - 1; j >= 0; j--) {
+        
+        for (int j = GRIDH - 1; j >= 0; j--) {
+            sumSmoke += smokeCount;
+            smokeCount = 0;
+            for (int i = 0; i < GRIDW; i++) {
                 if (moved[i][j] == true) {
                     continue;
                 }
@@ -107,7 +112,10 @@ public:
                     }
                     break;
                 case smoke:
-                    if (rand() % 60 == 0) {
+                    if (sumSmoke < 1400) {
+                        smokeCount++;
+                    };
+                    if (rand() % (95 - sumSmoke / 20) == 0) {
                         grid[i][j] = air;
                     } else {
                         int x;
@@ -126,6 +134,78 @@ public:
                         grid[i][j] = grid[i][x];
                         grid[i][x] = smoke;
                         moved[i][x] = true;
+                    }
+                    break;
+                }
+            }
+        }
+        for (int i = 0; i < GRIDW; ++i) {
+            delete[] moved[i];
+        }
+        delete[] moved;
+    }
+    void _simulateHorizontal() {
+        bool** moved = new bool* [GRIDW];
+        for (int i = 0; i < GRIDW; i++) {
+            moved[i] = new bool[GRIDH];
+        }
+        for (int i = GRIDW - 1; i >= 0; i--) {
+            for (int j = GRIDH - 1; j >= 0; j--) {
+                moved[i][j] = false;
+            }
+        }
+        for (int i = 0; i < GRIDW; i++) {
+            for (int j = GRIDH - 1; j >= 0; j--) {
+                if (moved[i][j] == true) {
+                    continue;
+                }
+                switch (grid[i][j]) {
+                case air:
+                    break;
+                case gravel:
+                    break;
+                case water:
+                    if (rand() % 2) {
+                        if (i - 1 >= 0 && grid[i - 1][j] == air) {
+                            grid[i - 1][j] = water;
+                            grid[i][j] = air;
+                        }
+                    }
+                    else {
+                        if (i + 1 < GRIDW && grid[i + 1][j] == air) {
+                            grid[i + 1][j] = water;
+                            grid[i][j] = air;
+                        }
+                    }
+                    break;
+                case sand:
+                    if (rand() % 2) {
+                        if (i - 1 >= 0 && j + 1 < GRIDH && (grid[i - 1][j + 1] == air || grid[i - 1][j + 1] == water) && grid[i - 1][j] != sand && grid[i - 1][j] != gravel && grid[i][j + 1] != air) {
+                            grid[i][j] = grid[i - 1][j];
+                            moved[i][j] = true;
+                            grid[i - 1][j] = sand;
+                            moved[i - 1][j] = true;
+                        }
+                    }
+                    else if (i + 1 < GRIDW && j + 1 < GRIDH && (grid[i + 1][j + 1] == air || grid[i + 1][j + 1] == water) && grid[i + 1][j] != sand && grid[i + 1][j] != gravel && grid[i][j + 1] != air) {
+                        grid[i][j] = grid[i + 1][j];
+                        moved[i][j] = true;
+                        grid[i + 1][j] = sand;
+                        moved[i + 1][j] = true;
+                    }
+                    break;
+                case smoke:
+                    if (rand() % 2) {
+                        if (i - 1 >= 0 && grid[i - 1][j] == air) {
+                            grid[i - 1][j] = smoke;
+                            grid[i][j] = air;
+                        }
+                    }
+                    else {
+                        if (i + 1 < GRIDW && grid[i + 1][j] == air) {
+                            grid[i + 1][j] = smoke;
+                            grid[i][j] = air;
+                        }
                     }
                     break;
                 }
