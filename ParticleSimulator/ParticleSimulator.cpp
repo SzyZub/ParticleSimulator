@@ -4,7 +4,8 @@
 #define SCREENW 1024
 #define SCREENH 768
 #define CELLSIDE 4
-#define TYPESIDE 50
+#define TYPESHORT 50
+#define TYPELONG 100
 #define GRIDW SCREENW/CELLSIDE
 #define GRIDH SCREENH/CELLSIDE - 15
 #define SKYCOL {102, 191, 255, 210}
@@ -13,6 +14,7 @@
 #define SANDCOL {211, 169, 108, 215}
 #define SMOKCOL {200, 200, 200, 245}
 #define ACIDCOL {0, 208, 65, 200}
+#define ROCKCOL {40, 40, 40, 230}
 
 typedef enum CellType {
     air = 0,
@@ -20,7 +22,8 @@ typedef enum CellType {
     water,
     sand,
     smoke,
-    acid
+    acid,
+    rock
 }CellType;
 
 class ParticleHandler {
@@ -56,15 +59,19 @@ public:
                 case acid:
                     DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, ACIDCOL);
                     break;
+                case rock:
+                    DrawRectangle(i * CELLSIDE, j * CELLSIDE, CELLSIDE, CELLSIDE, ROCKCOL);
+                    break;
                 }
             }
         }
-        DrawRectangle(10, 713, TYPESIDE, TYPESIDE, SKYCOL);
-        DrawRectangle(70, 713, TYPESIDE, TYPESIDE, GRAVCOL);
-        DrawRectangle(130, 713, TYPESIDE, TYPESIDE, WATERCOL);
-        DrawRectangle(190, 713, TYPESIDE, TYPESIDE, SANDCOL);
-        DrawRectangle(250, 713, TYPESIDE, TYPESIDE, SMOKCOL);
-        DrawRectangle(310, 713, TYPESIDE, TYPESIDE, ACIDCOL);
+        DrawRectangle(30, 713, TYPELONG, TYPESHORT, SKYCOL);
+        DrawRectangle(140, 713, TYPELONG, TYPESHORT, GRAVCOL);
+        DrawRectangle(250, 713, TYPELONG, TYPESHORT, WATERCOL);
+        DrawRectangle(360, 713, TYPELONG, TYPESHORT, SANDCOL);
+        DrawRectangle(470, 713, TYPELONG, TYPESHORT, SMOKCOL);
+        DrawRectangle(580, 713, TYPELONG, TYPESHORT, ACIDCOL);
+        DrawRectangle(690, 713, TYPELONG, TYPESHORT, ROCKCOL);
     }
     void _PutParticles(int x, int y, int brushSize, CellType selectedBrush) {
         int xn = x / CELLSIDE;
@@ -101,8 +108,6 @@ public:
                     continue;
                 }
                 switch (grid[i][j]) {
-                case air:
-                    break;
                 case gravel:
                     if (j + 1 < GRIDH && grid[i][j + 1] == acid) {
                         grid[i][j] = smoke;
@@ -142,7 +147,7 @@ public:
                             if (grid[i][x] == smoke) {
                                 moved[i][x] = true;
                             }
-                            else if(grid[i][x] == sand || grid[i][x] == gravel){
+                            else if(grid[i][x] == rock){
                                 x++;
                                 break;
                             }
@@ -156,7 +161,7 @@ public:
                     }
                     break;
                 case acid:
-                    if (j + 1 < GRIDH && grid[i][j + 1] == acid) {
+                    if (j + 1 < GRIDH && (grid[i][j + 1] == acid || grid[i][j + 1] == rock)) {
                         break;
                     } else if (j + 1 < GRIDH && grid[i][j + 1] != air && grid[i][j + 1] != smoke) {
                         grid[i][j] = smoke;
@@ -191,10 +196,6 @@ public:
                     continue;
                 }
                 switch (grid[i][j]) {
-                case air:
-                    break;
-                case gravel:
-                    break;
                 case water:
                     if (rand() % 2) {
                         if (i - 1 >= 0 && grid[i - 1][j] == air) {
@@ -211,14 +212,14 @@ public:
                     break;
                 case sand:
                     if (rand() % 2) {
-                        if (i - 1 >= 0 && j + 1 < GRIDH && (grid[i - 1][j + 1] == air || grid[i - 1][j + 1] == water) && grid[i - 1][j] != sand && grid[i - 1][j] != gravel && grid[i][j + 1] != air) {
+                        if (i - 1 >= 0 && j + 1 < GRIDH && (grid[i - 1][j + 1] == air || grid[i - 1][j + 1] == water) && grid[i - 1][j] != sand && grid[i - 1][j] != gravel && grid[i - 1][j] != rock && grid[i][j + 1] != air) {
                             grid[i][j] = grid[i - 1][j];
                             moved[i][j] = true;
                             grid[i - 1][j] = sand;
                             moved[i - 1][j] = true;
                         }
                     }
-                    else if (i + 1 < GRIDW && j + 1 < GRIDH && (grid[i + 1][j + 1] == air || grid[i + 1][j + 1] == water) && grid[i + 1][j] != sand && grid[i + 1][j] != gravel && grid[i][j + 1] != air) {
+                    else if (i + 1 < GRIDW && j + 1 < GRIDH && (grid[i + 1][j + 1] == air || grid[i + 1][j + 1] == water) && grid[i + 1][j] != sand && grid[i + 1][j] != gravel && grid[i + 1][j] != rock && grid[i][j + 1] != air) {
                         grid[i][j] = grid[i + 1][j];
                         moved[i][j] = true;
                         grid[i + 1][j] = sand;
@@ -241,7 +242,7 @@ public:
                     break;
                 case acid:
                     if (rand() % 2) {
-                        if (j + 1 < GRIDH && i - 1 >= 0 && grid[i][j+1] == acid && grid[i-1][j] != air && grid[i - 1][j] != acid) {
+                        if (j + 1 < GRIDH && i - 1 >= 0 && grid[i][j+1] == acid && grid[i-1][j] != air && grid[i - 1][j] != acid && grid[i - 1][j] != rock) {
                             grid[i - 1][j] = smoke;
                             grid[i][j] = smoke;
                         }
@@ -251,7 +252,7 @@ public:
                         }
                     }
                     else {
-                        if (j + 1 < GRIDH && i + 1 < GRIDW && grid[i][j + 1] == acid && grid[i + 1][j] != air && grid[i + 1][j] != acid) {
+                        if (j + 1 < GRIDH && i + 1 < GRIDW && grid[i][j + 1] == acid && grid[i + 1][j] != air && grid[i + 1][j] != acid && grid[i + 1][j] != rock) {
                             grid[i + 1][j] = smoke;
                             grid[i][j] = smoke;
                         }
@@ -297,10 +298,10 @@ public:
         BeginDrawing();
         ClearBackground(BLACK);
         handler._DrawParticles();
-        DrawText(TextFormat("%d", brushSize), 890, 725, 30, WHITE);
-        DrawRectangle(930, 733, 30, 10, WHITE);
-        DrawRectangle(940, 723, 10, 30, WHITE);
-        DrawRectangle(970, 733, 30, 10, WHITE);
+        DrawText(TextFormat("%d", brushSize), 835, 720, 40, WHITE);
+        DrawRectangle(900, 733, 30, 10, WHITE);
+        DrawRectangle(910, 723, 10, 30, WHITE);
+        DrawRectangle(960, 733, 30, 10, WHITE);
         EndDrawing();
     }
     void _mouseInteraction() {
@@ -308,28 +309,31 @@ public:
         int y = GetMouseY();
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
             if (y >= 708) {
-                if (x > 10 && x < 10 + TYPESIDE) {
+                if (x > 30 && x < 30 + TYPELONG) {
                     selectedBrush = air;
                 }
-                else if (x > 70 && x < 70 + TYPESIDE) {
+                else if (x > 140 && x < 140 + TYPELONG) {
                     selectedBrush = gravel;
                 }
-                else if (x > 130 && x < 130 + TYPESIDE) {
+                else if (x > 250 && x < 250 + TYPELONG) {
                     selectedBrush = water;
                 }
-                else if (x > 190 && x < 190 + TYPESIDE) {
+                else if (x > 360 && x < 360 + TYPELONG) {
                     selectedBrush = sand;
                 }
-                else if (x > 250 && x < 250 + TYPESIDE) {
+                else if (x > 470 && x < 470 + TYPELONG) {
                     selectedBrush = smoke;
                 }
-                else if (x > 310 && x < 310 + TYPESIDE) {
+                else if (x > 580 && x < 580 + TYPELONG) {
                     selectedBrush = acid;
                 }
-                else if (brushSize < 20 && x > 930 && x < 960 && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                else if (x > 690 && x < 690 + TYPELONG) {
+                    selectedBrush = rock;
+                }
+                else if (brushSize < 20 && x > 900 && x < 930 && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     brushSize++;
                 }
-                else if (brushSize > 1 && x > 970 && x < 1000 && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                else if (brushSize > 1 && x > 960 && x < 990 && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                     brushSize--;
                 }
             }
