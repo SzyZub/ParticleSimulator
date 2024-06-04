@@ -10,4 +10,4 @@ You can select materials and increment/decrement brush size by clicking with lef
 
 You can place particles on the canvas by clicking/holding left mouse.
 
-Screen size are 1024x768 and simulation is done with a grid of rectangles 4x4.
+Screen size is 1024x768 and simulation is done with a grid of rectangles 4x4.
