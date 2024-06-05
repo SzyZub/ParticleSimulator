@@ -1,5 +1,9 @@
 Ready to run project is in ReadyProgram folder.
 
+Demonstration at:
+
+https://www.youtube.com/watch?v=qKFfr3srl_w
+
 Description:
 
 There are 7 different materials: air, stone, water, sand, smoke, acid and indestructable, floating variant of stone.
